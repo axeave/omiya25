@@ -55,7 +55,6 @@ const App = () => {
 
   return (
     <div>
-      <h1>再生付きスケッチ（間隔制御）</h1>
       <CanvasLayered sketches={sketches} />
     </div>
   );
