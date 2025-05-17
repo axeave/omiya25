@@ -55,7 +55,7 @@ import Sketch from "react-p5";
   };
 
   const saveLines = async (sketch_id, lines) => {
-    const res =await fetch("${process.env.REACT_APP_API_URL}/api/save_lines", {
+    const res =await fetch(`${process.env.REACT_APP_API_URL}/api/save_lines`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sketch_id, lines}),
