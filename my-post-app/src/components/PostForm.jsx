@@ -1,47 +1,28 @@
 import React, { useState } from "react";
 import Sketch from "react-p5";
-import { sendPostToServer } from "../api/postApi";
 
-function PostForm() {
-  const [text, setText] = useState("");
-  const [posts, setPosts] = useState([]);
+  export default function PostForm() {
   const [drawingLog, setDrawingLog] = useState([]);
-  const [color, setColor] = useState("#000000");
-  const [thickness,setThickness] = useState(2);
+  const [color,setColor]           = useState("#000000");
+  const [thickness, setThickness]   = useState(2);
 
   let isDrawing = false;
 
-  const setup = (p5, canvasParentRef) => {
-    // すでに存在するインスタンスがあれば削除
-    if (window.p5Instance) {
-      window.p5Instance.remove();
-    }
-
-    const canvas = p5.createCanvas(400, 300).parent(canvasParentRef);
-    canvas.style("width", "400px");
-    canvas.style("height", "300px");
-
-    p5.background(255); // 白背景
-    window.p5Instance = p5;
+   // p5 setup
+  const setup = (p5, parentRef) => {
+    if (window.p5Instance) window.p5Instance.remove();
+    const canvas = p5.createCanvas(800, 600).parent(parentRef);
+    p5.background(255);window.p5Instance = p5;
   };
 
   const draw = (p5) => {
-    if (
-      p5.mouseIsPressed &&
-      p5.mouseY < 300 &&
-      p5.mouseX < 400 &&
-      p5.mouseX >= 0 &&
-      p5.mouseY >= 0
-    ) {
+     if (p5.mouseIsPressed && p5.mouseY >= 0 && p5.mouseY <= 600)  {
       if (!isDrawing) isDrawing = true;
       p5.stroke(color);
       p5.strokeWeight(thickness);
       p5.line(p5.pmouseX, p5.pmouseY, p5.mouseX, p5.mouseY);
 
-      setDrawingLog((prev) => [
-        ...prev,
-        { x: p5.mouseX, y: p5.mouseY, time: p5.millis() },
-      ]);
+      setDrawingLog(prev => [...prev, { x: p5.mouseX, y: p5.mouseY }]);
     } else {
       isDrawing = false;
     }
@@ -74,108 +55,101 @@ function PostForm() {
   };
 
   const saveLines = async (sketch_id, lines) => {
-    await fetch("${process.env.REACT_APP_API_URL}/api/save_lines", {
+    const res =await fetch("${process.env.REACT_APP_API_URL}/api/save_lines", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sketch_id, lines}),
     });
+     if (!res.ok) console.error("save_lines failed:", await res.text());
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const canvas = document.querySelector("canvas");
-    const imageData = canvas.toDataURL("image/png");
-
-    const newPost = {
-      id: Date.now(),
-      text,
-      image: imageData,
-      log: drawingLog,
-      color,
-      thickness,
-    };
+  // マウス／指を離した瞬間の自動投稿処理
+  const mouseReleased = async (p5) => {
+    if (drawingLog.length < 2) {
+      setDrawingLog([]);       // 点数不足ならリセットだけ
+      return;
+    }
 
     try {
       const sketch_id = await createSketch();
       const lines = convertLogToLines(drawingLog);
       console.log(lines);
       await saveLines(sketch_id, lines);
-    } catch (error) {
-      console.error("送信エラー:", error);
+    } catch (err) {
+      console.error("送信エラー:", err);
     }
 
-    setText("");
     setDrawingLog([]);
 
     // Canvasを白でリセット
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    p5.background(255);
   };
 
   return (
-  <div className="p-4 max-w-md mx-auto bg-purple-50 min-h-screen">
-    <form onSubmit={handleSubmit} className="space-y-2">
-        {/* 色選択ツール */}
-        <div className="flex gap-2 mb-2">
-          {["#000000", "#ff0000", "#0000ff", "#00cc00"].map((c) => (
-            <button
-              key={c}
-              onClick={(e) => {
-                e.preventDefault();
-                setColor(c);
-              }}
-              className="w-6 h-6 rounded-full border-2"
-              style={{ backgroundColor: c }}
-            />
-          ))}
+    <div style={{
+      padding: 16,
+      maxWidth: '100vw',
+      minHeight: '100vh',
+      backgroundColor: '#F3E8FF',
+      boxSizing: 'border-box'
+    }}>
+      {/* コントロール */}
+      <div style={{ marginBottom: 16, display: 'flex', gap: 24 }}>
+        {/* 色 */}
+        <div>
+          <strong>線の色</strong>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {['#000000','#ff0000','#0000ff','#00cc00'].map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  border: color===c ? '2px solid #3B82F6' : '1px solid #ccc',
+                  backgroundColor: c
+                }}
+              />
+            ))}
+          </div>
         </div>
-        <label className="block">
-          線の色:
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-          />
-        </label>
-
-        <div className="flex gap-2">
-          {[1,2,4,6,8,10].map((w)=>(
-            <button
-              key={w}
-              type = "button"
-              onClick = {()=> setThickness(w)}
-              className={`px-2 py-1 border ${thickness === w ? 'bg-blue-500 text-white' : ''}`}
-              >
-                {w}px
-              </button>
-          ))}
+        {/* 太さ */}
+        <div>
+          <strong>線の太さ</strong>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {[1,2,4,6,8,10].map(w => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => setThickness(w)}
+                style={{
+                  padding: '4px 8px', border: '1px solid #ccc', borderRadius: 4,
+                  backgroundColor: thickness===w ? '#3B82F6' : 'transparent',
+                  color: thickness===w ? '#fff' : '#000'
+                }}
+              >{w}px</button>
+            ))}
+          </div>
         </div>
+      </div>
 
-        {/* キャンバス */}
-        <div className="w-[400px] h-[300px]"
-          style={{
-            backgroundColor: '#FEF3C7',
-            padding: '8px',
-            display: 'inline-block',
-            border: '4px solid #FFBB00',
-            borderRadius: '8px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          }}>
-          <Sketch setup={setup} draw={draw} />
-        </div>
-
-        {/* 投稿ボタン */}
-        <button
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          type="submit"
-        >
-          投稿
-        </button>
-      </form>
+      {/* キャンバス */}
+      <div style={{
+        width: 800,
+        height: 600,
+        border: '4px solid #FFBB00',
+        borderRadius: 8,
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        backgroundColor: '#FEF3C7',
+        touchAction: 'pan-x pinch-zoom',
+        overscrollBehaviorY: 'contain'
+      }}>
+        <Sketch
+          setup={setup}
+          draw={draw}
+          mouseReleased={mouseReleased}
+        />
+      </div>
     </div>
   );
 }
-
-export default PostForm;

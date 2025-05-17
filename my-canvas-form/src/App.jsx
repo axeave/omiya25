@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Canvas from './Canvas';
+import CanvasLayered from './CanvasLayered';
 
 const App = () => {
   const [sketches, setSketches] = useState([]);
@@ -55,7 +56,7 @@ const App = () => {
   return (
     <div>
       <h1>再生付きスケッチ（間隔制御）</h1>
-      <Canvas sketches={sketches} />
+      <CanvasLayered sketches={sketches} />
     </div>
   );
 };
