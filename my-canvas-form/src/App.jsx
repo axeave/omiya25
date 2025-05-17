@@ -9,7 +9,7 @@ const App = () => {
     let timeoutId;
 
     const fetchLines = () => {
-      fetch(`${process.env.REACT_APP_API_URL}/api/get_all_sketch_lines`)
+      fetch(`${import.meta.env.VITE_API_URL}/api/get_all_sketch_lines`)
         .then(res => res.json())
         .then(data => {
           // ① sketch_id ごとにグループ化
