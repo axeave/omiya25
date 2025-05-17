@@ -63,7 +63,7 @@ export default function PostForm() {
   }, [color, thickness]);
 
  
-}
+
   const createSketch = async () => {
   const res = await fetch(`${process.env.REACT_APP_API_URL}/api/create_sketch`, { method: "POST" });
   const text = await res.text();
@@ -188,3 +188,4 @@ export default function PostForm() {
       </div>
     </div>
   );
+}
