@@ -48,12 +48,15 @@ function PostForm() {
   };
 
   const createSketch = async () => {
-    const res = await fetch("{process.env.REACT_APP_API_URL}/api/create_sketch", {
-      method: "POST",
-    });
-    const data = await res.json();
+  const res = await fetch(`${process.env.REACT_APP_API_URL}/api/create_sketch`, { method: "POST" });
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text);
     return data.sketch_id;
-  };
+  } catch (e) {
+    throw new Error(`レスポンスがJSONではありません: "${text}"`);
+  }
+};
 
   const convertLogToLines = (log) => {
     const lines = [];
