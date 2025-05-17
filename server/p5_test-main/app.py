@@ -133,13 +133,15 @@ def get_sketch_lines(sketch_id):
 @app.route('/api/get_all_sketch_lines', methods=['GET'])
 def get_all_sketch_lines():
     """保存されている全てのスケッチの線画データを取得し、各スケッチの開始点と終了点を返す。"""
+    logging.info("get_all_sketch_lines: リクエスト受信")  # ログ出力
     conn = get_db()
     cursor = conn.cursor()
     try:
+        logging.info("get_all_sketch_lines: データベース操作開始")  # ログ出力
         cursor.execute("""
             SELECT 
                 l.start_x, l.start_y, l.end_x, l.end_y, 
-                l.color,l.thickness,
+                l.color, l.thickness,
                 s.created_at, s.id as sketch_id,
                 FIRST_VALUE(l.start_x) OVER (PARTITION BY s.id ORDER BY l.id ASC) as sketch_start_x,
                 FIRST_VALUE(l.start_y) OVER (PARTITION BY s.id ORDER BY l.id ASC) as sketch_start_y,
@@ -151,11 +153,14 @@ def get_all_sketch_lines():
         """)
         lines = cursor.fetchall()
         close_db(conn)
+        logging.info("get_all_sketch_lines: レスポンス送信 (成功)")  # ログ出力
         return jsonify([dict(row) for row in lines])
     except sqlite3.Error as e:
         close_db(conn)
+        logging.error(f"get_all_sketch_lines: エラー発生: {e}")  # ログ出力
         return jsonify({'error': str(e)}), 500
-
+    finally:
+        logging.info("get_all_sketch_lines: 処理終了")  # ログ出力
 
 # 以前の /api/get_lines と /api/save_line は新しいエンドポイントに役割を譲るため削除またはコメントアウトします。
 # もし古いAPIを何らかの理由で残したい場合はその旨お伝えください。
