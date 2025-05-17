@@ -171,5 +171,6 @@ def get_all_sketch_lines():
 if __name__ == '__main__':
     # staticフォルダの場所を明示的に指定 (通常は自動で認識されますが、念のため)
     # app.static_folder = 'static'
+    CORS(app)
     init_db()
     app.run(host='0.0.0.0', port=5000, debug=True)
