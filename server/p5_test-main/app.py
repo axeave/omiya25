@@ -6,6 +6,7 @@ from flask import Flask, render_template, request, jsonify
 app = Flask(__name__)
 CORS(app)
 DATABASE = 'lines.db'
+logging.basicConfig(level=logging.INFO) # ログレベルを設定
 
 
 
