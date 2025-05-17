@@ -1,4 +1,5 @@
 import sqlite3
+import logging
 from flask_cors import CORS
 from flask import Flask, render_template, request, jsonify
 
@@ -45,61 +46,52 @@ def log_page():
 
 @app.route('/api/create_sketch', methods=['POST'])
 def create_sketch():
-    """新しいスケッチを作成し、そのIDを返します。"""
+    logging.info("create_sketch: リクエスト受信") # ログ出力
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO sketches DEFAULT VALUES") # created_atは自動で入る
+        logging.info("create_sketch: データベース操作開始") # ログ出力
+        cursor.execute("INSERT INTO sketches DEFAULT VALUES")
         conn.commit()
-        sketch_id = cursor.lastrowid # 作成されたスケッチのIDを取得
+        sketch_id = cursor.lastrowid
+        logging.info(f"create_sketch: スケッチID {sketch_id} を作成") # ログ出力
         close_db(conn)
+        logging.info("create_sketch: レスポンス送信") # ログ出力
         return jsonify({'message': 'Sketch created successfully', 'sketch_id': sketch_id}), 201
     except sqlite3.Error as e:
         conn.rollback()
         close_db(conn)
+        logging.error(f"create_sketch: エラー発生: {e}") # ログ出力
         return jsonify({'error': str(e)}), 500
+    finally:
+        logging.info("create_sketch: 処理終了") # ログ出力
 
-@app.route('/api/save_lines', methods=['POST']) # エンドポイント名を複数形に変更 (save_line -> save_lines)
+@app.route('/api/save_lines', methods=['POST'])
 def save_lines():
-    """複数の線データを指定されたスケッチIDで保存します。"""
+    logging.info("save_lines: リクエスト受信")
     data = request.get_json()
-    if not data or 'sketch_id' not in data or 'lines' not in data or not isinstance(data['lines'], list):
-        return jsonify({'error': 'Invalid data. sketch_id and a list of lines are required.'}), 400
-
-    sketch_id = data['sketch_id']
-    lines_data = data['lines']
-
+    sketch_id = data.get('sketch_id')
+    lines = data.get('lines')
     conn = get_db()
     cursor = conn.cursor()
     try:
-        # まず、指定されたsketch_idが存在するか確認 (任意ですが、より堅牢になります)
-        cursor.execute("SELECT id FROM sketches WHERE id = ?", (sketch_id,))
-        sketch = cursor.fetchone()
-        if not sketch:
-            close_db(conn)
-            return jsonify({'error': f'Sketch with id {sketch_id} not found.'}), 404
-
-        for line in lines_data:
-            if 'start_x' not in line or 'start_y' not in line or 'end_x' not in line or 'end_y' not in line:
-                # 一つでも不正な線データがあればロールバックしてエラーを返す
-                conn.rollback()
-                close_db(conn)
-                return jsonify({'error': 'Invalid line data found in the list.'}), 400
-            color = line.get('color', '#000000')         # デフォルト黒
-            thickness = line.get('thickness', 2.0)       # デフォルト太さ1.0
-
-            cursor.execute(
-                "INSERT INTO lines (sketch_id, start_x, start_y, end_x, end_y, color, thickness) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (sketch_id, line['start_x'], line['start_y'], line['end_x'], line['end_y'], color, thickness)
-            )
-
+        logging.info("save_lines: データベース操作開始")
+        for line in lines:
+            cursor.execute("""
+                INSERT INTO lines (sketch_id, start_x, start_y, end_x, end_y, color, thickness)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (sketch_id, line['start_x'], line['start_y'], line['end_x'], line['end_y'], line['color'], line['thickness']))
         conn.commit()
         close_db(conn)
-        return jsonify({'message': f'{len(lines_data)} lines saved successfully for sketch {sketch_id}'}), 201
+        logging.info("save_lines: 線を保存しました")
+        return jsonify({'message': 'Lines saved successfully'}), 200
     except sqlite3.Error as e:
         conn.rollback()
         close_db(conn)
+        logging.error(f"save_lines: エラー発生: {e}")
         return jsonify({'error': str(e)}), 500
+    finally:
+        logging.info("save_lines: 処理終了")
 
 @app.route('/api/get_sketches', methods=['GET'])
 def get_sketches():
