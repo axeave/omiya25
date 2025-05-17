@@ -1,10 +1,11 @@
 import sqlite3
 import logging
+import json
 from flask_cors import CORS
 from flask import Flask, render_template, request, jsonify
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 DATABASE = 'lines.db'
 logging.basicConfig(level=logging.INFO) # ログレベルを設定
 
@@ -71,6 +72,7 @@ def create_sketch():
 def save_lines():
     logging.info("save_lines: リクエスト受信")
     data = request.get_json()
+    logging.info(f"save_lines: 受信データ: {json.dumps(data)}")  # ログ出力
     sketch_id = data.get('sketch_id')
     lines = data.get('lines')
     conn = get_db()
