@@ -48,7 +48,7 @@ function PostForm() {
   };
 
   const createSketch = async () => {
-    const res = await fetch("http://172.31.91.184:5000/api/create_sketch", {
+    const res = await fetch("{process.env.REACT_APP_API_URL}/api/create_sketch", {
       method: "POST",
     });
     const data = await res.json();
