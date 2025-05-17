@@ -74,7 +74,7 @@ function PostForm() {
   };
 
   const saveLines = async (sketch_id, lines) => {
-    await fetch("http://172.31.91.184:5000/api/save_lines", {
+    await fetch("${process.env.REACT_APP_API_URL}/api/save_lines", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sketch_id, lines}),
