@@ -1,22 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Sketch from "react-p5";
 
-  export default function PostForm() {
+export default function PostForm() {
   const [drawingLog, setDrawingLog] = useState([]);
-  const [color,setColor]           = useState("#000000");
-  const [thickness, setThickness]   = useState(2);
-
+  const [color, setColor] = useState("#000000");
+  const [thickness, setThickness] = useState(2);
+  const canvasRef = useRef(null); // useRefを追加
   let isDrawing = false;
 
-   // p5 setup
+  // p5 setup
   const setup = (p5, parentRef) => {
     if (window.p5Instance) window.p5Instance.remove();
     const canvas = p5.createCanvas(800, 600).parent(parentRef);
-    p5.background(255);window.p5Instance = p5;
+    p5.background(255);
+    window.p5Instance = p5;
+    canvasRef.current = canvas.canvas; // canvas要素を保存
   };
 
   const draw = (p5) => {
-     if (p5.mouseIsPressed && p5.mouseY >= 0 && p5.mouseY <= 600)  {
+    if (p5.mouseIsPressed && p5.mouseY >= 0 && p5.mouseY <= 600) {
       if (!isDrawing) isDrawing = true;
       p5.stroke(color);
       p5.strokeWeight(thickness);
@@ -28,6 +30,40 @@ import Sketch from "react-p5";
     }
   };
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleTouchStart = (event) => {
+      event.preventDefault(); // デフォルトの動作を抑制
+      isDrawing = true;
+    };
+
+    const handleTouchMove = (event) => {
+      if (isDrawing) {
+        event.preventDefault(); // 描画中は画面スクロールを抑制
+        // ... 描画処理 ...
+      }
+    };
+
+    const handleTouchEnd = (event) => {
+      event.preventDefault(); // デフォルトの動作を抑制
+      isDrawing = false;
+    };
+
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [color, thickness]);
+
+ 
+}
   const createSketch = async () => {
   const res = await fetch(`${process.env.REACT_APP_API_URL}/api/create_sketch`, { method: "POST" });
   const text = await res.text();
@@ -152,4 +188,3 @@ import Sketch from "react-p5";
       </div>
     </div>
   );
-}
