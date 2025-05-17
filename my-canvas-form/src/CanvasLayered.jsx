@@ -1,17 +1,36 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 
-const CanvasLayered = ({ sketches }) => {
-  const staticCanvasRef = useRef(null); // 背景
-  const animatedCanvasRef = useRef(null); // アニメーション前景
+const CanvasLayered = ({ sketches, canvasRef, containerRef }) => {
+  const staticCanvasRef = canvasRef; // propsからcanvasRefを受け取る
+  const animatedCanvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  const updateCanvasSize = () => {
+    if (containerRef.current) {
+      setContainerSize({
+        width: containerRef.current.clientWidth,
+        height: containerRef.current.clientHeight
+      });
+    }
+  };
+
+  useEffect(() => {
+    updateCanvasSize();
+    window.addEventListener('resize', updateCanvasSize);
+    return () => window.removeEventListener('resize', updateCanvasSize);
+  }, []);
 
   useEffect(() => {
     const staticCanvas = staticCanvasRef.current;
     const animatedCanvas = animatedCanvasRef.current;
     if (!staticCanvas || !animatedCanvas || isDrawing || sketches.length === 0) return;
 
-    // 背景（静止画）描画
+    staticCanvas.width = containerSize.width;
+    staticCanvas.height = containerSize.height;
+    animatedCanvas.width = containerSize.width;
+    animatedCanvas.height = containerSize.height;
+
     const staticCtx = staticCanvas.getContext('2d');
     staticCtx.clearRect(0, 0, staticCanvas.width, staticCanvas.height);
 
@@ -27,91 +46,64 @@ const CanvasLayered = ({ sketches }) => {
       });
     });
 
-    // アニメーション描画開始
+    // アニメーション描画
     setIsDrawing(true);
     const animatedCtx = animatedCanvas.getContext('2d');
     animatedCtx.clearRect(0, 0, animatedCanvas.width, animatedCanvas.height);
 
-    let sketchIndex = 0;
-    let lineIndex = 0;
-    const animatedSketches = sketches
-      .filter(s => s.animate)
-      .reverse(); // ← 最新が最後に再生されるように！
+    const animatedSketches = sketches.filter(s => s.animate);
+    let animationFrameId;
 
-    const drawNext = () => {
-      if (sketchIndex >= animatedSketches.length) {
-        // 🔁 再生終わったあと10秒だけキャンバスを保持してから終了
-        setTimeout(() => {
-          setIsDrawing(false);
-        }, 10000); // 10000ms = 10秒
-
+    const animateSketch = (index) => {
+      if (index >= animatedSketches.length) {
+        setIsDrawing(false);
         return;
       }
-      const sketch = animatedSketches[sketchIndex];
-      const line = sketch.lines[lineIndex];
-      if (line) {
-        animatedCtx.beginPath();
-        animatedCtx.moveTo(line.start_x, line.start_y);
-        animatedCtx.lineTo(line.end_x, line.end_y);
-        animatedCtx.strokeStyle = line.color || '#000000';
-        animatedCtx.lineWidth = line.thickness || 2;
-        animatedCtx.stroke();
-        lineIndex++;
-        setTimeout(drawNext, 30);
-      } else {
-        sketchIndex++;
-        lineIndex = 0;
-        setTimeout(drawNext, 200); // 次のスケッチまでちょい待つ
-      }
+
+      const sketch = animatedSketches[index];
+      const lines = sketch.lines;
+      let i = 0;
+
+      const drawLine = () => {
+        if (i < lines.length) {
+          const line = lines[i];
+          animatedCtx.beginPath();
+          animatedCtx.moveTo(line.start_x, line.start_y);
+          animatedCtx.lineTo(line.end_x, line.end_y);
+          animatedCtx.strokeStyle = line.color || '#000000';
+          animatedCtx.lineWidth = line.thickness || 2;
+          animatedCtx.stroke();
+          i++;
+          animationFrameId = requestAnimationFrame(drawLine);
+        } else {
+          animateSketch(index + 1); // 次のアニメーション
+        }
+      };
+
+      drawLine();
     };
 
-    drawNext();
-  }, [sketches]);
+    if (animatedSketches.length > 0) {
+      animateSketch(0);
+    } else {
+      setIsDrawing(false);
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      setIsDrawing(false);
+    };
+
+  }, [sketches, containerSize]);
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5' // 背景色
-    }}>
-      <div style={{
-        position: 'relative',
-        backgroundColor: '#fff8dc',      // 額縁の内側
-        border: '12px solid #8b5e3c',    // 額縁の外枠
-        padding: '0px',
-        boxSizing: 'content-box',
-        boxShadow: '0 0 20px rgba(0,0,0,0.3)',
-        width: 800,
-        height: 600
-      }}>
-        <canvas
-          ref={staticCanvasRef}
-          width={800}
-          height={600}
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            zIndex: 0
-          }}
-        />
-        <canvas
-          ref={animatedCanvasRef}
-          width={800}
-          height={600}
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            zIndex: 1
-          }}
-        />
-      </div>
-    </div>
+    <>
+      <canvas ref={staticCanvasRef} style={{ display: 'block', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }} />
+      <canvas ref={animatedCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1 }} />
+    </>
   );
-
 };
 
 export default CanvasLayered;
