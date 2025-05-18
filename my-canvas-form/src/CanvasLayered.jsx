@@ -43,7 +43,7 @@ const CanvasLayered = ({ sketches }) => {
         // 🔁 再生終わったあと10秒だけキャンバスを保持してから終了
         setTimeout(() => {
           setIsDrawing(false);
-        }, 10000); // 10000ms = 10秒
+        }, 8000); // 8000ms = 8秒
 
         return;
       }
@@ -57,7 +57,7 @@ const CanvasLayered = ({ sketches }) => {
         animatedCtx.lineWidth = line.thickness || 2;
         animatedCtx.stroke();
         lineIndex++;
-        setTimeout(drawNext, 30);
+        setTimeout(drawNext, 10);
       } else {
         sketchIndex++;
         lineIndex = 0;
