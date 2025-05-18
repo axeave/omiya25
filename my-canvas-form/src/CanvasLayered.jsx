@@ -40,7 +40,7 @@ const CanvasLayered = ({ sketches }) => {
 
     const drawNext = () => {
       if (sketchIndex >= animatedSketches.length) {
-        // 🔁 再生終わったあと10秒だけキャンバスを保持してから終了
+        // 🔁 再生終わったあと8秒だけキャンバスを保持してから終了
         setTimeout(() => {
           setIsDrawing(false);
         }, 8000); // 8000ms = 8秒

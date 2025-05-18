@@ -31,7 +31,7 @@ const App = () => {
           const sketchList = sortedIds.map((id, index) => ({
             sketch_id: id,
             lines: grouped[id],
-            animate: index < 10 // 最新10件だけアニメーション
+            animate: index < 5 // 最新5件だけアニメーション
           }));
 
           setSketches(sketchList);
